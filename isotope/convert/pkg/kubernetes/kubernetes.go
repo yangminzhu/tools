@@ -27,6 +27,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/google/uuid"
+	"math/rand"
 )
 
 const (
@@ -83,6 +85,8 @@ func ServiceGraphToKubernetesManifests(
 		return nil, err
 	}
 
+	rand.Seed(time.Now().UTC().UnixNano())
+	hasRbacPolicy := false
 	for _, service := range serviceGraph.Services {
 		k8sDeployment, innerErr := makeDeployment(
 			service, serviceNodeSelector, serviceImage,
@@ -103,6 +107,15 @@ func ServiceGraphToKubernetesManifests(
 		if innerErr != nil {
 			return nil, innerErr
 		}
+
+		if service.NumRbacPolicies > 0 {
+			hasRbacPolicy = true
+			var i int32
+			j := rand.Int31n(service.NumRbacPolicies)
+			for i = 0; i < service.NumRbacPolicies; i++ {
+				manifests = append(manifests, generateRbacPolicy(service, i == j))
+			}
+		}
 	}
 
 	fortioDeployment := makeFortioDeployment(
@@ -116,8 +129,54 @@ func ServiceGraphToKubernetesManifests(
 		return nil, err
 	}
 
+	if hasRbacPolicy {
+		tmpl := `
+apiVersion: "rbac.istio.io/v1alpha1"
+kind: RbacConfig
+metadata:
+  name: default
+spec:
+  mode: 'ON_WITH_INCLUSION'
+  inclusion:
+    namespaces: ["%s"]
+`
+		manifests = append(manifests, fmt.Sprintf(tmpl, ServiceGraphNamespace))
+	}
 	yamlDocString := strings.Join(manifests, "---\n")
 	return []byte(yamlDocString), nil
+}
+
+func generateRbacPolicy(svc svc.Service, forAll bool) string {
+	tmpl := `
+apiVersion: "rbac.istio.io/v1alpha1"
+kind: ServiceRole
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  rules:
+  - services: ["%s.%s.svc.cluster.local"]
+    methods: ["*"]
+---
+apiVersion: "rbac.istio.io/v1alpha1"
+kind: ServiceRoleBinding
+metadata:
+  name: %s
+  namespace: %s
+spec:
+  subjects:
+  - user: "%s"
+  roleRef:
+    kind: ServiceRole
+    name: "%s"
+`
+  name := uuid.New().String()
+  ns := ServiceGraphNamespace
+  user := name
+  if forAll {
+  	user = "*"
+  }
+  return fmt.Sprintf(tmpl, name, ns, svc.Name, ns, name, ns, user, name)
 }
 
 func combineLabels(a, b map[string]string) map[string]string {
