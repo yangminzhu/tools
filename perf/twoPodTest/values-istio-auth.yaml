@@ -21,7 +21,7 @@ global:
     image: proxyv2
     resources:
       requests:
-        cpu: 2000m
+        cpu: 500m
         memory: 1024Mi
 
     # Configures the access log for each sidecar. Setting it to an empty string will
@@ -34,14 +34,14 @@ global:
 mixer:
     resources:
       requests:
-        cpu: 4000m
-        memory: 4048Mi
+        cpu: 1000m
+        memory: 1024Mi
 
 pilot:
     resources:
       requests:
-        cpu: 4000m
-        memory: 8096Mi
+        cpu: 1000m
+        memory: 1024Mi
 
 grafana:
     enabled: true

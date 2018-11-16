@@ -2,15 +2,19 @@
 #excludeOutboundIPRanges exclude pod ips
 excludeOutboundIPRanges: 
 proxy:
-  cpu: "2000m"
-  memory: "512m"
+  cpu: "400m"
+  memory: "256m"
 
 appresources:
   requests:
-    cpu: "800m"
-    memory: "1000m"
+    cpu: "150m"
+    memory: "250m"
 
 fortioImage: istio/fortio:latest_release
 tlsmode: ISTIO_MUTUAL
 domain: local
 gateway: fortio-gateway
+namespace: service-graph
+rbac:
+  enabled: true
+  numPolicies: 3

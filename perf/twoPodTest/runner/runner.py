@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import datetime
 import calendar
 import requests

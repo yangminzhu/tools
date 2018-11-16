@@ -14,8 +14,10 @@ function run_test() {
   echo "Wrote ${TMPDIR}/twopods.yaml"
 
   # remove stdio rules
-  kubectl --namespace istio-system delete rules stdio stdiotcp
-#         kubectl apply -n ${NAMESPACE} -f ${TMPDIR}/twopods.yaml
+  # kubectl --namespace istio-system delete rules stdio stdiotcp
+
+  kubectl create ns ${NAMESPACE} && kubectl label ns ${NAMESPACE} istio-injection=enabled
+  kubectl apply -n ${NAMESPACE} -f ${TMPDIR}/twopods.yaml
 }
 
 run_test
